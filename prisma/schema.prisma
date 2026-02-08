@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model User {
+  id            String      @id @default(cuid())
+  clerkId       String      @unique
+  email         String      @unique
+  name          String?
+  role          UserRole    @default(USER)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  prompts       Prompt[]
+  responses     GeneratedResponse[]
+  adminLogs     AdminLog[]
+}
+
+model Prompt {
+  id             String      @id @default(cuid())
+  userId         String
+  promptText     String
+  createdAt      DateTime    @default(now())
+  user           User        @relation(fields: [userId], references: [id])
+  response       GeneratedResponse?
+  savedResources SavedResource[]
+
+  @@index([userId, createdAt])
+}
+
+model GeneratedResponse {
+  id            String      @id @default(cuid())
+  userId        String
+  promptId      String      @unique
+  responseText  String
+  citationsJson Json
+  createdAt     DateTime    @default(now())
+  user          User        @relation(fields: [userId], references: [id])
+  prompt        Prompt      @relation(fields: [promptId], references: [id])
+}
+
+model SavedResource {
+  id        String   @id @default(cuid())
+  promptId  String
+  title     String
+  url       String
+  snippet   String
+  createdAt DateTime @default(now())
+  prompt    Prompt   @relation(fields: [promptId], references: [id])
+
+  @@index([promptId])
+}
+
+model AdminLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  metadata  Json
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([createdAt])
+}
